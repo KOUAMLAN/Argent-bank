@@ -1,30 +1,37 @@
 import React from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { Link } from 'react-router-dom';
-import { RootState } from '../state/store';
+import { RootState, AppDispatch } from '../state/store';
+import { updateUserProfile } from '../state/authSlice';
 import WelcomeBanner from '../components/WelcomeBanner';
 import AccountCard from '../components/AccountCard';
 import { Account } from '../types';
 
 const mockAccounts: Account[] = [
-    { id: '1', title: 'Argent Bank Checking (x3448)', amount: '$48,098.43', description: 'Available Balance' },
-    { id: '2', title: 'Argent Bank Savings (x6712)', amount: '$10,928.42', description: 'Available Balance' },
-    { id: '3', title: 'Argent Bank Credit Card (x5201)', amount: '$184.30', description: 'Current Balance' },
+    { id: '1', title: 'Argent Bank Checking (x3448)', amount: '$48,098.43', description: 'Available balance' },
+    { id: '2', title: 'Argent Bank Checking (x3448)', amount: '$48,098.43', description: 'Available balance' },
+    { id: '3', title: 'Argent Bank Checking (x3448)', amount: '$48,098.43', description: 'Available balance' },
 ];
 
 const ProfilePage: React.FC = () => {
     const { user } = useSelector((state: RootState) => state.auth);
+    const dispatch: AppDispatch = useDispatch();
 
     if (!user) {
-        // État de chargement pendant la récupération du profil
-        return <div className="flex-grow bg-white p-8 flex items-center justify-center text-gray-800 text-xl">Loading profile...</div>;
+        return <div className="flex-grow p-8 flex items-center justify-center text-white text-xl">Loading profile...</div>;
     }
 
+    const handleUserNameUpdate = (newUserName: string) => {
+        dispatch(updateUserProfile({ userName: newUserName }));
+    };
+
     return (
-        <div className="bg-white text-gray-800 flex-grow p-8">
+        <div className="flex-grow p-8">
             <WelcomeBanner 
+                userName={user.userName}
                 firstName={user.firstName} 
                 lastName={user.lastName}
+                onUserNameUpdate={handleUserNameUpdate}
             />
             <h2 className="sr-only">Accounts</h2>
             {mockAccounts.map(account => (
