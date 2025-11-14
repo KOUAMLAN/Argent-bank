@@ -1,3 +1,5 @@
+import { Transaction, User } from '../types';
+
 const API_BASE_URL = 'http://localhost:3001/api/v1';
 
 export interface LoginCredentials {
@@ -14,7 +16,6 @@ export interface TransactionUpdateData {
     notes?: string;
 }
 
-// Wrapper fetch réutilisable pour gérer les requêtes et les erreurs
 async function apiFetch(endpoint: string, options: RequestInit = {}) {
     try {
         const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
@@ -22,9 +23,8 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
         if (!response.ok) {
             throw new Error(data.message || 'An API error occurred');
         }
-        return data.body; // Retourne directement le corps de la réponse
+        return data.body;
     } catch (err: any) {
-        // Relance avec un message d'erreur cohérent
         throw new Error(err.message || 'Network error or server is unreachable.');
     }
 }
@@ -41,7 +41,7 @@ export const loginApi = async (credentials: LoginCredentials): Promise<string> =
     return data.token;
 };
 
-export const fetchUserProfileApi = async (token: string) => {
+export const fetchUserProfileApi = async (token: string): Promise<User> => {
     return apiFetch('/user/profile', {
         method: 'POST',
         headers: {
@@ -50,7 +50,7 @@ export const fetchUserProfileApi = async (token: string) => {
     });
 };
 
-export const updateUserProfileApi = async (token: string, profileData: UserProfileUpdate) => {
+export const updateUserProfileApi = async (token: string, profileData: UserProfileUpdate): Promise<User> => {
     return apiFetch('/user/profile', {
         method: 'PUT',
         headers: {
@@ -61,22 +61,29 @@ export const updateUserProfileApi = async (token: string, profileData: UserProfi
     });
 };
 
-export const fetchTransactionsApi = async (token: string, accountId: string) => {
-    return apiFetch(`/accounts/${accountId}/transactions`, {
-        method: 'GET',
-        headers: {
-            'Authorization': `Bearer ${token}`,
-        },
-    });
+export const fetchTransactionsApi = async (token: string, accountId: string): Promise<Transaction[]> => {
+    console.log(`Fetching transactions for account ${accountId} with token ${token}... (using mock data)`);
+    // NOTE: C'est une fausse liste, comme demandé. Dans une vraie application, on parlerait au serveur ici.
+    return Promise.resolve([
+      { id: 'tx1', date: '27/02/20', description: 'Golden Sun Bakery', amount: 8.00, balance: 298.00, type: 'Electronic', category: 'Food', notes: 'lorem ipsum' },
+      { id: 'tx2', date: '27/02/20', description: 'Golden Sun Bakery', amount: 8.00, balance: 298.00, type: 'Electronic', category: 'Food', notes: 'lorem ipsum' },
+      { id: 'tx3', date: '27/02/20', description: 'Golden Sun Bakery', amount: 8.00, balance: 298.00, type: 'Electronic', category: 'Food', notes: 'lorem ipsum' },
+      { id: 'tx4', date: '27/02/20', description: 'Golden Sun Bakery', amount: 8.00, balance: 298.00, type: 'Electronic', category: 'Food', notes: 'lorem ipsum' },
+      { id: 'tx5', date: '27/02/20', description: 'Golden Sun Bakery', amount: 8.00, balance: 298.00, type: 'Electronic', category: 'Food', notes: 'lorem ipsum' }
+    ]);
 };
 
-export const updateTransactionApi = async (token: string, transactionId: string, updateData: TransactionUpdateData) => {
-    return apiFetch(`/transactions/${transactionId}`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(updateData),
+export const updateTransactionApi = async (token: string, transactionId: string, updateData: TransactionUpdateData): Promise<Transaction> => {
+    console.log(`Updating transaction ${transactionId} with token ${token} and data`, updateData, "(simulated)");
+    // NOTE: C'est aussi une simulation. La vraie fonction parlerait au serveur.
+    return Promise.resolve({
+        id: transactionId,
+        date: '27/02/20',
+        description: 'Golden Sun Bakery',
+        amount: 8.00,
+        balance: 298.00,
+        type: 'Electronic',
+        category: updateData.category || 'Food',
+        notes: updateData.notes ?? 'lorem ipsum'
     });
 };

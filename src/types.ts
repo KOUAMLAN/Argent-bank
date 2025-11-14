@@ -11,7 +11,17 @@ export interface Transaction {
   description: string;
   amount: number;
   balance: number;
-  type: 'Electronic' | 'Card' | 'Transfer';
-  category: 'Food' | 'Shopping' | 'Utilities' | 'Transport' | string;
+  type: 'Electronic' | 'Card' | 'Transfer' | 'Deposit';
+  category: string;
   notes: string;
+}
+
+export interface User {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    userName: string;
+    createdAt: string;
+    updatedAt: string;
 }

@@ -1,23 +1,22 @@
-import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
-import { AppDispatch, RootState } from './state/store';
+import React, { useEffect, PropsWithChildren } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useAppDispatch, useAppSelector } from './hooks';
 import { fetchUserProfile } from './state/authSlice';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
-import SignInPage from './pages/SignInPage';
+import LoginPage from './pages/LoginPage';
 import ProfilePage from './pages/ProfilePage';
 import ProtectedRoute from './components/ProtectedRoute';
-import EditProfilePage from './pages/EditProfilePage';
 import TransactionsPage from './pages/TransactionsPage';
 
-const AppLayout: React.FC = () => {
-  const location = useLocation();
-  const dispatch: AppDispatch = useDispatch();
-  const { token } = useSelector((state: RootState) => state.auth);
+/**
+ * AppLayout, c'est comme un cadre. Toutes les pages qu'on met dedans auront un en-tête et un pied de page.
+ */
+const AppLayout: React.FC<PropsWithChildren<{}>> = ({ children }) => {
+  const dispatch = useAppDispatch();
+  const { token } = useAppSelector((state) => state.auth);
   
-  // Récupère le profil utilisateur si un token existe au chargement initial
   useEffect(() => {
     if (token) {
       dispatch(fetchUserProfile(token));
@@ -27,48 +26,45 @@ const AppLayout: React.FC = () => {
   return (
     <div className="flex flex-col min-h-screen bg-white text-gray-800">
       <Header />
-      <main className="flex-grow flex flex-col">
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/login" element={<SignInPage />} />
-          <Route 
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <ProfilePage />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/profile/edit"
-            element={
-              <ProtectedRoute>
-                <EditProfilePage />
-              </ProtectedRoute>
-            }
-          />
-          <Route 
-            path="/account/:accountId/transactions"
-            element={
-              <ProtectedRoute>
-                <TransactionsPage />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-      </main>
-      {/* Le footer ne s'affiche pas sur la page de connexion, qui a son propre footer */}
-      {location.pathname !== '/login' && <Footer />}
+      {children}
+      <Footer />
     </div>
   );
 };
 
+/**
+ * App, c'est le grand chef d'orchestre des routes. Il décide quelle page montrer en fonction de l'adresse.
+ */
 const App: React.FC = () => {
+  const { isAuthenticated } = useAppSelector((state) => state.auth);
+
   return (
-    <BrowserRouter>
-      <AppLayout />
-    </BrowserRouter>
+     <Routes>
+        <Route path="/login" element={isAuthenticated ? <Navigate to="/profile" /> : <LoginPage />} />
+        
+        <Route path="/*" element={
+          <AppLayout>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route element={<ProtectedRoute />}>
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/account/:accountId/transactions" element={<TransactionsPage />} />
+              </Route>
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </AppLayout>
+        } />
+      </Routes>
   );
 };
 
-export default App;
+/**
+ * Root, c'est le tout premier composant qui enveloppe notre application pour que le système d'adresses (BrowserRouter) fonctionne partout.
+ */
+const Root: React.FC = () => (
+  <BrowserRouter>
+    <App />
+  </BrowserRouter>
+);
+
+export default Root;

@@ -1,16 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { loginApi, fetchUserProfileApi, updateUserProfileApi } from '../services/api';
-import { LoginCredentials, UserProfileUpdate } from '../services/api';
-
-interface User {
-    id: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-    userName: string;
-    createdAt: string;
-    updatedAt: string;
-}
+import { loginApi, fetchUserProfileApi, updateUserProfileApi, LoginCredentials, UserProfileUpdate } from '../services/api';
+import type { RootState } from './store';
+import { User } from '../types';
 
 interface AuthState {
     isAuthenticated: boolean;
@@ -21,9 +12,9 @@ interface AuthState {
 }
 
 const initialState: AuthState = {
-    isAuthenticated: false,
+    isAuthenticated: !!sessionStorage.getItem('token'),
     user: null,
-    token: null,
+    token: sessionStorage.getItem('token'),
     loading: 'idle',
     error: null,
 };
@@ -33,6 +24,7 @@ export const loginUser = createAsyncThunk(
     async (credentials: LoginCredentials, { dispatch, rejectWithValue }) => {
         try {
             const token = await loginApi(credentials);
+            sessionStorage.setItem('token', token);
             dispatch(fetchUserProfile(token));
             return { token };
         } catch (error: any) {
@@ -48,6 +40,7 @@ export const fetchUserProfile = createAsyncThunk(
             const user = await fetchUserProfileApi(token);
             return { user };
         } catch (error: any) {
+            sessionStorage.removeItem('token');
             return rejectWithValue(error.message);
         }
     }
@@ -57,11 +50,12 @@ export const updateUserProfile = createAsyncThunk(
     'auth/updateUserProfile',
     async (profileData: UserProfileUpdate, { getState, rejectWithValue }) => {
         try {
-            const { auth } = getState() as { auth: AuthState };
-            if (!auth.token) {
+            const state = getState() as RootState;
+            const token = state.auth.token;
+            if (!token) {
                 return rejectWithValue('No token found');
             }
-            const updatedUser = await updateUserProfileApi(auth.token, profileData);
+            const updatedUser = await updateUserProfileApi(token, profileData);
             return { user: updatedUser };
         } catch (error: any) {
             return rejectWithValue(error.message);
@@ -79,6 +73,7 @@ const authSlice = createSlice({
             state.token = null;
             state.error = null;
             state.loading = 'idle';
+            sessionStorage.removeItem('token');
         },
     },
     extraReducers: (builder) => {
@@ -89,15 +84,24 @@ const authSlice = createSlice({
             })
             .addCase(loginUser.fulfilled, (state, action: PayloadAction<{ token: string }>) => {
                 state.token = action.payload.token;
-                state.loading = 'succeeded';
             })
             .addCase(loginUser.rejected, (state, action) => {
                 state.loading = 'failed';
                 state.error = action.payload as string;
             })
+            .addCase(fetchUserProfile.pending, (state) => {
+                state.loading = 'pending';
+            })
             .addCase(fetchUserProfile.fulfilled, (state, action: PayloadAction<{ user: User }>) => {
                 state.isAuthenticated = true;
                 state.user = action.payload.user;
+                state.loading = 'succeeded';
+            })
+            .addCase(fetchUserProfile.rejected, (state) => {
+                state.isAuthenticated = false;
+                state.token = null;
+                state.user = null;
+                state.loading = 'failed';
             })
             .addCase(updateUserProfile.pending, (state) => {
                 state.loading = 'pending';
@@ -115,4 +119,5 @@ const authSlice = createSlice({
 });
 
 export const { logout } = authSlice.actions;
+
 export default authSlice.reducer;
